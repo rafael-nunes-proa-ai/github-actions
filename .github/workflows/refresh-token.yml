@@ -1,29 +1,42 @@
-name: Renovar Token RD Station
+name: RD Station - Refresh Token e Criar Contato
 
-# Agenda: todo dia, a cada hora (exemplo)
 on:
   workflow_dispatch:
 
 jobs:
-  refresh-token:
+  rdstation:
     runs-on: ubuntu-latest
 
     steps:
       - name: Renovar token RD Station
+        id: refresh
         run: |
           echo "Renovando token..."
 
           RESPONSE=$(curl -s -X POST https://api.rd.services/oauth2/token \
             -H "Content-Type: application/json" \
-            -d "{
-              \"grant_type\": \"refresh_token\",
-              \"client_id\": \"${{ secrets.RD_CLIENT_ID }}\",
-              \"client_secret\": \"${{ secrets.RD_CLIENT_SECRET }}\",
-              \"refresh_token\": \"${{ secrets.RD_REFRESH_TOKEN }}\"
-            }")
+            -d '{
+              "grant_type": "refresh_token",
+              "client_id": "'"${{ secrets.RD_CLIENT_ID }}"'",
+              "client_secret": "'"${{ secrets.RD_CLIENT_SECRET }}"'",
+              "refresh_token": "'"${{ secrets.RD_REFRESH_TOKEN }}"'"
+            }')
 
-          echo "Resposta do RD Station: $RESPONSE"
+          echo "Resposta: $RESPONSE"
 
-          # Se quiser enviar o token para seu sistema via webhook
-          curl -X POST ${{ secrets.WEBHOOK_URL }} \
+          ACCESS_TOKEN=$(echo $RESPONSE | jq -r '.access_token')
+
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: Criar contato no RD Station
+        run: |
+          echo "Criando contato..."
+
+          curl -X POST https://api.rd.services/platform/contacts \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
+            -d '{
+              "email": "teste3@exemplo.com",
+              "name": "Contato Teste3"
+            }'
