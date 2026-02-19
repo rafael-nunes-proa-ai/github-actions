@@ -8,25 +8,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Renovar token RD Station
-        id: refresh
+      - name: Gerar token via code
         run: |
-          echo "Renovando token..."
-
-          RESPONSE=$(curl -s -X POST https://api.rd.services/oauth2/token \
+          RESPONSE=$(curl -s -X POST "https://api.rd.services/auth/token?token_by=code" \
             -H "Content-Type: application/json" \
             -d '{
-              "grant_type": "refresh_token",
               "client_id": "'"${{ secrets.RD_CLIENT_ID }}"'",
               "client_secret": "'"${{ secrets.RD_CLIENT_SECRET }}"'",
-              "refresh_token": "'"${{ secrets.RD_REFRESH_TOKEN }}"'"
+              "code": "'"${{ secrets.RD_CODE }}"'"
             }')
-
-          echo "Resposta: $RESPONSE"
-
-          ACCESS_TOKEN=$(echo $RESPONSE | jq -r '.access_token')
-
+      
+          echo "Resposta:"
+          echo "$RESPONSE"
+      
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+      
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
 
       - name: Criar contato no RD Station
         run: |
