@@ -37,6 +37,6 @@ jobs:
             -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{
-              "email": "teste3@exemplo.com",
-              "name": "Contato Teste3"
+              "email": "teste4@exemplo.com",
+              "name": "Contato Teste4"
             }'
