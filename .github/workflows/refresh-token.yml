@@ -1,0 +1,29 @@
+name: Renovar Token RD Station
+
+# Agenda: todo dia, a cada hora (exemplo)
+on:
+  workflow_dispatch:
+
+jobs:
+  refresh-token:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Renovar token RD Station
+        run: |
+          echo "Renovando token..."
+
+          RESPONSE=$(curl -s -X POST https://api.rd.services/oauth2/token \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"grant_type\": \"refresh_token\",
+              \"client_id\": \"${{ secrets.RD_CLIENT_ID }}\",
+              \"client_secret\": \"${{ secrets.RD_CLIENT_SECRET }}\",
+              \"refresh_token\": \"${{ secrets.RD_REFRESH_TOKEN }}\"
+            }")
+
+          echo "Resposta do RD Station: $RESPONSE"
+
+          # Se quiser enviar o token para seu sistema via webhook
+          curl -X POST ${{ secrets.WEBHOOK_URL }} \
+            -H "Content-Type: application/json" \
