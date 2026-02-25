@@ -1,40 +1,51 @@
-name: RD Station - Refresh Token e Criar Contato
+name: RD Station - Verificar Email
 
 on:
   workflow_dispatch:
+    inputs:
+      email:
+        description: "Email para verificar no RD"
+        required: true
+        default: "teste@exemplo.com"
 
 jobs:
-  rdstation:
+  verificar-email:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Gerar token via code
+      - name: Renovar token via refresh_token
         run: |
-          RESPONSE=$(curl -s -X POST "https://api.rd.services/auth/token?token_by=code" \
+          echo "Renovando token..."
+
+          RESPONSE=$(curl -s -X POST "https://api.rd.services/auth/token?token_by=refresh_token" \
             -H "Content-Type: application/json" \
             -d '{
               "client_id": "'"${{ secrets.RD_CLIENT_ID }}"'",
               "client_secret": "'"${{ secrets.RD_CLIENT_SECRET }}"'",
-              "code": "'"${{ secrets.RD_CODE }}"'"
+              "refresh_token": "'"${{ secrets.RD_REFRESH_TOKEN }}"'"
             }')
-      
-          echo "Resposta:"
+
+          echo "Resposta do token:"
           echo "$RESPONSE"
-      
+
           ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
-      
+
+          if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "Erro ao obter access_token"
+            exit 1
+          fi
+
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
-
-      - name: Criar contato no RD Station
+      - name: Consultar email no RD
         run: |
-          echo "Criando contato..."
+          EMAIL="${{ github.event.inputs.email }}"
 
-          curl -X POST https://api.rd.services/platform/contacts \
+          echo "Consultando email: $EMAIL"
+
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -X GET "https://api.rd.services/platform/contacts/email:$EMAIL" \
             -H "Accept: application/json" \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "email": "teste5@exemplo.com",
-              "name": "Contato Teste5"
-            }'
+            -H "Authorization: Bearer $ACCESS_TOKEN")
+
+          echo "$RESPONSE"
