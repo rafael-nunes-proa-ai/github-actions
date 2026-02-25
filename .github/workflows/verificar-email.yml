@@ -1,0 +1,40 @@
+name: RD Station - Refresh Token e Criar Contato
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdstation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Gerar token via code
+        run: |
+          RESPONSE=$(curl -s -X POST "https://api.rd.services/auth/token?token_by=code" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "client_id": "'"${{ secrets.RD_CLIENT_ID }}"'",
+              "client_secret": "'"${{ secrets.RD_CLIENT_SECRET }}"'",
+              "code": "'"${{ secrets.RD_CODE }}"'"
+            }')
+      
+          echo "Resposta:"
+          echo "$RESPONSE"
+      
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+      
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+
+      - name: Criar contato no RD Station
+        run: |
+          echo "Criando contato..."
+
+          curl -X POST https://api.rd.services/platform/contacts \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "email": "teste5@exemplo.com",
+              "name": "Contato Teste5"
+            }'
