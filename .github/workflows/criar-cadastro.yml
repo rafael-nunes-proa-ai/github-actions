@@ -1,0 +1,59 @@
+name: RD Station - Criar Contato
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email do contato"
+        required: true
+      nomeCompleto:
+        description: "Nome completo"
+        required: true
+      nomeEmpresa:
+        description: "Nome da empresa"
+        required: false
+      numero:
+        description: "Telefone"
+        required: false
+
+jobs:
+  criar-contato:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Renovar token
+        run: |
+          RESPONSE=$(curl -s -X POST "https://api.rd.services/auth/token?token_by=refresh_token" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "client_id": "'"${{ secrets.RD_CLIENT_ID }}"'",
+              "client_secret": "'"${{ secrets.RD_CLIENT_SECRET }}"'",
+              "refresh_token": "'"${{ secrets.RD_REFRESH_TOKEN }}"'"
+            }')
+
+          ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+
+          if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "Erro ao obter access_token"
+            exit 1
+          fi
+
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: Criar contato no RD
+        run: |
+          EMAIL="${{ github.event.inputs.email }}"
+          NOME="${{ github.event.inputs.nomeCompleto }}"
+          EMPRESA="${{ github.event.inputs.nomeEmpresa }}"
+          TELEFONE="${{ github.event.inputs.numero }}"
+
+          curl -X POST https://api.rd.services/platform/contacts \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"email\": \"$EMAIL\",
+              \"name\": \"$NOME\",
+              \"organization\": \"$EMPRESA\",
+              \"mobile_phone\": \"$TELEFONE\"
+            }"
